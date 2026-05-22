@@ -5,7 +5,7 @@ import { getAuthHeader } from "../lib/auth"
 import { API_BASE } from "../lib/api"
 import { toast } from "sonner"
 
-// 渲染消息内容：自动把 Markdown 图片和图片 URL 渲染成 <img>
+// Render message content: automatically render Markdown images and image URLs as <img>
 function MessageContent({ content }: { content: string }) {
   type Seg = { start: number; end: number; url: string }
   const segs: Seg[] = []
@@ -58,7 +58,7 @@ export default function TestPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  // 挂载时从 /v1/models 拉真实模型列表，失败回退到默认三项
+  // On mount, fetch real model list from /v1/models; fallback to defaults on failure
   useEffect(() => {
     (async () => {
       try {
@@ -99,7 +99,7 @@ export default function TestPage() {
         } else if (data.choices?.[0]) {
           setMessages(prev => [...prev, data.choices[0].message])
         } else {
-          setMessages(prev => [...prev, { role: "assistant", content: `❌ 未知响应: ${JSON.stringify(data)}`, error: true }])
+          setMessages(prev => [...prev, { role: "assistant", content: `❌ Unknown response: ${JSON.stringify(data)}`, error: true }])
         }
       } else {
         const res = await fetch(`${API_BASE}/v1/chat/completions`, {
@@ -164,14 +164,14 @@ export default function TestPage() {
         if (!hasContent) {
           setMessages(prev => {
             const msgs = [...prev]
-            msgs[msgs.length - 1] = { role: "assistant", content: "❌ 响应为空（账号可能未激活或无可用账号）", error: true }
+            msgs[msgs.length - 1] = { role: "assistant", content: "❌ Response is empty (account may not be activated or no available account)", error: true }
             return msgs
           })
         }
       }
     } catch (err: any) {
-      toast.error(`网络错误: ${err.message}`)
-      setMessages(prev => [...prev, { role: "assistant", content: `❌ 网络错误: ${err.message}`, error: true }])
+      toast.error(`Network error: ${err.message}`)
+      setMessages(prev => [...prev, { role: "assistant", content: `❌ Network error: ${err.message}`, error: true }])
     } finally {
       setLoading(false)
     }
@@ -181,12 +181,12 @@ export default function TestPage() {
     <div className="flex flex-col h-[calc(100vh-10rem)] space-y-4 max-w-5xl mx-auto">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">接口测试</h2>
-          <p className="text-muted-foreground">在此测试您的 API 分发是否正常工作。</p>
+          <h2 className="text-2xl font-bold tracking-tight">API Test</h2>
+          <p className="text-muted-foreground">Test your API distribution here to verify it works correctly.</p>
         </div>
         <div className="flex gap-4 items-center">
           <div className="flex items-center gap-2 text-sm bg-card border px-3 py-1.5 rounded-md">
-            <span className="font-medium text-muted-foreground">模型:</span>
+            <span className="font-medium text-muted-foreground">Model:</span>
             <select value={model} onChange={e => setModel(e.target.value)} className="bg-transparent font-mono outline-none">
               {availableModels.map(id => (
                 <option key={id} value={id}>{id}</option>
@@ -198,10 +198,10 @@ export default function TestPage() {
             onClick={() => setStream(!stream)}
           >
             <input type="checkbox" checked={stream} onChange={() => {}} className="cursor-pointer" />
-            <span className="font-medium">流式传输 (Stream)</span>
+            <span className="font-medium">Streaming</span>
           </div>
           <Button variant="outline" onClick={() => setMessages([])}>
-            <RefreshCw className="mr-2 h-4 w-4" /> 清空对话
+            <RefreshCw className="mr-2 h-4 w-4" /> Clear Conversation
           </Button>
         </div>
       </div>
@@ -211,7 +211,7 @@ export default function TestPage() {
           {messages.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center text-muted-foreground space-y-4">
               <Bot className="h-12 w-12 text-muted-foreground/30" />
-              <p className="text-sm">发送一条消息以开始测试，系统将通过 /v1/chat/completions 进行调用。</p>
+              <p className="text-sm">Send a message to start testing. The system will call /v1/chat/completions.</p>
             </div>
           )}
           {messages.map((msg, i) => (
@@ -224,14 +224,14 @@ export default function TestPage() {
                     : "bg-muted/30 border text-foreground"}`}>
                 {msg.role === "assistant" && !msg.content && !msg.reasoning && loading ? (
                   <span className="animate-pulse flex items-center gap-2 text-muted-foreground">
-                    <Bot className="h-4 w-4" /> 思考中...
+                    <Bot className="h-4 w-4" /> Thinking...
                   </span>
                 ) : msg.role === "assistant" && !msg.error ? (
                   <div className="space-y-2">
                     {msg.reasoning ? (
                       <details open className="rounded-md border border-dashed border-border/50 bg-muted/20 p-2 text-xs">
                         <summary className="cursor-pointer select-none text-muted-foreground font-mono">
-                          💭 思考过程 ({msg.reasoning.length} 字)
+                          💭 Reasoning Process ({msg.reasoning.length} chars)
                         </summary>
                         <div className="whitespace-pre-wrap leading-relaxed text-muted-foreground mt-2 pl-2 border-l-2 border-border/30">
                           {msg.reasoning}
@@ -256,7 +256,7 @@ export default function TestPage() {
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleSend()}
             className="flex h-12 w-full rounded-md border border-input bg-background px-4 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-            placeholder="输入测试消息..."
+            placeholder="Enter test message..."
             disabled={loading}
           />
           <Button onClick={handleSend} disabled={loading || !input.trim()} className="h-12 px-6">

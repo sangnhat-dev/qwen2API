@@ -16,7 +16,7 @@ export default function TokensPage() {
         return res.json()
       })
       .then(data => setKeys(data.keys || []))
-      .catch(() => toast.error("刷新失败，请检查会话 Key"))
+      .catch(() => toast.error("Refresh failed, please check session key"))
   }
 
   useEffect(() => {
@@ -30,13 +30,13 @@ export default function TokensPage() {
     }).then(async res => {
       const data = await res.json().catch(() => ({}))
       if (res.ok) {
-        toast.success("已生成新的 API Key")
+        toast.success("New API Key generated")
         if (data.key) copyToClipboard(data.key)
         fetchKeys()
       } else {
-        toast.error(data.detail || "生成失败，请检查权限")
+        toast.error(data.detail || "Generation failed, please check permissions")
       }
-    }).catch(() => toast.error("生成失败，请检查权限"))
+    }).catch(() => toast.error("Generation failed, please check permissions"))
   }
 
   const handleDelete = (key: string) => {
@@ -45,13 +45,13 @@ export default function TokensPage() {
       headers: getAuthHeader()
     }).then(async res => {
       if (res.ok) {
-        toast.success("API Key 已删除")
+        toast.success("API Key deleted")
         fetchKeys()
       } else {
         const data = await res.json().catch(() => ({}))
-        toast.error(data.detail || "删除失败")
+        toast.error(data.detail || "Delete failed")
       }
-    }).catch(() => toast.error("删除失败"))
+    }).catch(() => toast.error("Delete failed"))
   }
 
   const copyToClipboard = (text: string) => {
@@ -64,15 +64,15 @@ export default function TokensPage() {
     <div className="space-y-6 max-w-4xl">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">API Key 分发</h2>
-          <p className="text-muted-foreground">管理可以访问此网关的下游凭证。</p>
+          <h2 className="text-2xl font-bold tracking-tight">API Key Distribution</h2>
+          <p className="text-muted-foreground">Manage downstream credentials that can access this gateway.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => { fetchKeys(); toast.success("已刷新"); }}>
-            <RefreshCw className="mr-2 h-4 w-4" /> 刷新
+          <Button variant="outline" onClick={() => { fetchKeys(); toast.success("Refreshed"); }}>
+            <RefreshCw className="mr-2 h-4 w-4" /> Refresh
           </Button>
           <Button onClick={handleGenerate}>
-            <Plus className="mr-2 h-4 w-4" /> 生成新 Key
+            <Plus className="mr-2 h-4 w-4" /> Generate New Key
           </Button>
         </div>
       </div>
@@ -81,15 +81,15 @@ export default function TokensPage() {
         <table className="w-full text-sm text-left">
           <thead className="bg-muted/50 border-b text-muted-foreground">
             <tr>
-              <th className="h-12 px-4 align-middle font-medium w-16">序号</th>
+              <th className="h-12 px-4 align-middle font-medium w-16">#</th>
               <th className="h-12 px-4 align-middle font-medium">API Key</th>
-              <th className="h-12 px-4 align-middle font-medium text-right">操作</th>
+              <th className="h-12 px-4 align-middle font-medium text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {keys.length === 0 && (
               <tr>
-                <td colSpan={3} className="p-4 text-center text-muted-foreground">暂无 API Key</td>
+                <td colSpan={3} className="p-4 text-center text-muted-foreground">No API Keys yet</td>
               </tr>
             )}
             {keys.map((k, i) => (
