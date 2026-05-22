@@ -7,6 +7,7 @@ httpx_engine.py — 用 curl_cffi 直连 Qwen API（Chrome TLS 指纹）
 import asyncio
 import json
 import logging
+from typing import Optional
 from curl_cffi.requests import AsyncSession
 
 log = logging.getLogger("qwen2api.httpx_engine")
@@ -34,12 +35,18 @@ _global_session: AsyncSession = None
 _session_lock: asyncio.Lock = None
 
 
-async def _get_global_session() -> AsyncSession:
-    """获取全局 AsyncSession"""
+async def _get_global_session(proxy: Optional[str] = None) -> AsyncSession:
+    """获取全局 AsyncSession（支持每账号代理）"""
     global _global_session, _session_lock
 
     if _session_lock is None:
         _session_lock = asyncio.Lock()
+
+    # 如果有代理配置，创建独立 session（不使用全局 pool）
+    if proxy:
+        session = AsyncSession(impersonate=_IMPERSONATE, timeout=30, proxy=proxy)
+        log.info(f"[HttpxEngine] ✅ 为代理 {proxy[:40]}... 创建独立 session")
+        return session
 
     if _global_session is not None:
         return _global_session
@@ -90,22 +97,22 @@ class HttpxEngine:
     def _auth_headers(self, token: str) -> dict:
         return {**_HEADERS, "Authorization": f"Bearer {token}"}
 
-    async def api_call(self, method: str, path: str, token: str, body: dict = None) -> dict:
-        # ✅ 改进：使用全局 session 而不是创建新的
+    async def api_call(self, method: str, path: str, token: str, body: dict = None, proxy: Optional[str] = None) -> dict:
+        # ✅ 改进：使用全局 session 而不是创建新的（支持每账号代理）
         url = self.base_url + path
         headers = {**self._auth_headers(token), "Content-Type": "application/json"}
         data = json.dumps(body, ensure_ascii=False).encode() if body else None
         try:
-            session = await _get_global_session()
+            session = await _get_global_session(proxy=proxy)
             resp = await session.request(method, url, headers=headers, data=data)
             return {"status": resp.status_code, "body": resp.text}
         except Exception as e:
             log.error(f"[HttpxEngine] api_call error: {e}")
             return {"status": 0, "body": str(e)}
 
-    async def fetch_chat(self, token: str, chat_id: str, payload: dict, buffered: bool = False):
+    async def fetch_chat(self, token: str, chat_id: str, payload: dict, buffered: bool = False, proxy: Optional[str] = None):
         """Stream Qwen SSE via curl_cffi with Chrome TLS fingerprint (with global connection pool)."""
-        # ✅ 改进：使用全局 session 而不是创建新的
+        # ✅ 改进：使用全局 session 而不是创建新的（支持每账号代理）
         url = self.base_url + f"/api/v2/chat/completions?chat_id={chat_id}"
         headers = {
             **self._auth_headers(token),
@@ -115,7 +122,7 @@ class HttpxEngine:
         body_bytes = json.dumps(payload, ensure_ascii=False).encode()
 
         try:
-            session = await _get_global_session()
+            session = await _get_global_session(proxy=proxy)
             async with session.stream("POST", url, headers=headers, data=body_bytes) as resp:
                 if resp.status_code != 200:
                     body_chunks = []

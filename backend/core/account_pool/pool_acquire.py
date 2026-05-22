@@ -233,6 +233,10 @@ class AccountAcquireMixin:
         """标记账号请求成功"""
         acc.consecutive_failures = 0
         acc.rate_limit_strikes = 0
+        # 清除冷却状态
+        if acc.cooldown_started_at > 0:
+            acc.cooldown_started_at = 0
+            acc.last_error_code = ""
         if acc.status_code == "rate_limited":
             acc.status_code = "valid"
         if not acc.activation_pending:
@@ -250,3 +254,24 @@ class AccountAcquireMixin:
         if self._sticky_email == acc.email:
             self._sticky_email = None
         log.warning(f"[账号] {acc.email} 已限流冷却 {dynamic} 秒")
+
+    def mark_transport_error(self, acc: "Account", error_code: str = "transport_error", error_message: str = ""):
+        """
+        标记传输层错误（增强版错误追踪）
+        对齐 Rfym21/Qwen2API 的错误处理逻辑：
+        - 记录错误代码和时间
+        - 3 次连续失败触发 5 分钟冷却
+        """
+        now = time.time()
+        acc.last_error_at = now
+        acc.last_error_code = error_code
+        acc.last_error = error_message or acc.last_error
+        acc.consecutive_failures += 1
+        
+        # 3 次失败触发冷却
+        if acc.consecutive_failures >= 3 and acc.cooldown_started_at <= 0:
+            acc.cooldown_started_at = now
+            log.warning(f"[账号] {acc.email} 连续失败{acc.consecutive_failures}次，进入 5 分钟冷却 (error={error_code})")
+        
+        if self._sticky_email == acc.email:
+            self._sticky_email = None

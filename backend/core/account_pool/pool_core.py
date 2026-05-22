@@ -24,6 +24,7 @@ class Account:
         activation_pending=False,
         status_code="",
         last_error="",
+        proxy: Optional[str] = None,  # 新增：每账号代理配置
         **kwargs,
     ):
         self.email = email
@@ -39,16 +40,33 @@ class Account:
         self.healing = False
         self.status_code = status_code or ("pending_activation" if activation_pending else "valid")
         self.last_error = last_error or ""
+        
+        # 新增：每账号代理配置
+        self.proxy = proxy  # 格式：http://user:pass@host:port 或 socks5://host:port
+        
+        # 时间戳字段
         self.last_request_started = float(kwargs.get("last_request_started", 0.0) or 0.0)
         self.last_request_finished = float(kwargs.get("last_request_finished", 0.0) or 0.0)
+        
+        # 错误追踪字段（增强版）
         self.consecutive_failures = int(kwargs.get("consecutive_failures", 0) or 0)
         self.rate_limit_strikes = int(kwargs.get("rate_limit_strikes", 0) or 0)
+        self.last_error_code = kwargs.get("last_error_code", "") or ""  # 新增：最后错误代码
+        self.last_error_at = float(kwargs.get("last_error_at", 0.0) or 0.0)  # 新增：最后错误时间
+        self.cooldown_started_at = float(kwargs.get("cooldown_started_at", 0.0) or 0.0)  # 新增：冷却开始时间
 
     def is_rate_limited(self) -> bool:
         return self.rate_limited_until > time.time()
 
+    def is_in_cooldown(self) -> bool:
+        """检查账号是否处于冷却期（增强版 cooldown 逻辑）"""
+        if self.cooldown_started_at <= 0:
+            return False
+        cooldown_duration = 300  # 5 分钟冷却
+        return time.time() < (self.cooldown_started_at + cooldown_duration)
+
     def is_available(self) -> bool:
-        return self.valid and not self.is_rate_limited()
+        return self.valid and not self.is_rate_limited() and not self.is_in_cooldown()
 
     def next_available_at(self) -> float:
         min_interval = max(0, settings.ACCOUNT_MIN_INTERVAL_MS) / 1000.0
@@ -89,10 +107,14 @@ class Account:
             "activation_pending": self.activation_pending,
             "status_code": self.status_code,
             "last_error": self.last_error,
+            "proxy": self.proxy,  # 新增：代理配置
             "last_request_started": self.last_request_started,
             "last_request_finished": self.last_request_finished,
             "consecutive_failures": self.consecutive_failures,
             "rate_limit_strikes": self.rate_limit_strikes,
+            "last_error_code": self.last_error_code,  # 新增：错误代码
+            "last_error_at": self.last_error_at,  # 新增：错误时间
+            "cooldown_started_at": self.cooldown_started_at,  # 新增：冷却时间
         }
 
 
